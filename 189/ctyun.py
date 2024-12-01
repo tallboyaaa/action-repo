@@ -2,6 +2,14 @@ import requests
 import hashlib
 import time
 from environs import Env
+import smtplib
+from email.mime.text import MIMEText
+from email.header import Header
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+
+env = Env()
+env.read_env()
 
 
 def keep_alive(ctyun, user_data, retries=3, delay=10):
@@ -75,29 +83,43 @@ def keep_alive(ctyun, user_data, retries=3, delay=10):
                 raise "连接超时"
 
 
-def send_msg(content):
-    url = "https://api.xbxin.com/msg/admin/corp"
-    env = Env()
-    env.read_env()
-    token = env.str("TOKEN")
+def send_email(content, is_html=False, attachments=None):
+    email_info = env.json('EMAIL')
 
-    headers = {
-        'Authorization': f'Bearer {token}',
-    }
+    send_status = {}
+    for receiver_email in email_info['to']:
+        try:
+            msg = MIMEMultipart() if attachments else MIMEText(
+                content, 'html' if is_html else 'plain', 'utf-8')
+            msg['Subject'] = Header('天翼云电脑保活', 'utf-8')
+            msg['From'] = email_info['username']
+            msg['To'] = receiver_email
 
-    data = {
-        "title": "天翼云电脑",
-        "desc": "保活",
-        "content": content
-    }
+            if attachments:
+                msg.attach(MIMEText(content, 'html' if is_html else 'plain', 'utf-8'))
+                for attachment_path in attachments:
+                    with open(attachment_path, 'rb') as f:
+                        part = MIMEApplication(f.read(), Name=f.name)
+                    part['Content-Disposition'] = f'attachment; filename="{f.name}"'
+                    msg.attach(part)
 
-    requests.post(url, json=data, headers=headers)
+            with smtplib.SMTP_SSL(email_info['smtp'], email_info['port']) as server:
+                server.login(email_info['username'], email_info['password'])
+                server.sendmail(email_info['username'], receiver_email, msg.as_string())
+            print(f"邮件发送给 {receiver_email} 成功！")
+            send_status[receiver_email] = True
+        except Exception as e:
+            print(f"邮件发送给 {receiver_email} 失败：{e}")
+            send_status[receiver_email] = False
+
+    print("邮件发送状态：" + str(send_status))
+    return send_status
 
 
 def sha256(password):
-    sha256 = hashlib.sha256()
-    sha256.update(password.encode('utf-8'))
-    return sha256.hexdigest()
+    hasher = hashlib.sha256()
+    hasher.update(password.encode('utf-8'))
+    return hasher.hexdigest()
 
 
 def login(ctyun):
@@ -119,7 +141,8 @@ def login(ctyun):
         'sec-fetch-mode': 'cors',
         'sec-fetch-site': 'same-site',
         'sec-gpc': '1',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) '
+                      'Chrome/125.0.0.0 Safari/537.36 Edg/125.0.0.0',
     }
 
     account = ctyun["account"]
@@ -147,13 +170,11 @@ def login(ctyun):
         user_data["secretKey"] = data["data"]["secretKey"]
         return user_data
     else:
-        send_msg(f"登录失败：{data}")
+        send_email(f"登录失败：{data}")
         return None
 
 
 def main():
-    env = Env()
-    env.read_env()
     ctyuns = env.json("CTYUN")
     for ctyun in ctyuns:
         try:
@@ -164,9 +185,9 @@ def main():
             # print(data)
             code = data["code"]
             if code != 0:
-                send_msg(f"保活失败：{data}")
+                send_email(f"保活失败：{data}")
         except Exception as e:
-            send_msg(f"保活失败：{e}")
+            send_email(f"保活失败：{e}")
 
 
 if __name__ == '__main__':
