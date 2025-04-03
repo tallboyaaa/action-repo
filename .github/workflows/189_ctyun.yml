@@ -2,7 +2,7 @@ name: 天翼云电脑保活
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '*/5 * * * *'
 
 
 jobs:
