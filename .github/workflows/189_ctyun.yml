@@ -2,13 +2,13 @@ name: 天翼云电脑保活
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
-
+    - cron: '*/5 * * * *'  # 每5分钟执行一次定时任务‌:ml-citation{ref="2,5" data="citationList"}
+  watch:
+    types: [started]       # 当仓库被star时触发
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: 'Checkout'
         uses: actions/checkout@v4
@@ -16,10 +16,8 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-
       - name: 'Install dependencies'
         run: pip install -r 189/requirements.txt
-
       - name: 'Run script'
         env:
           CTYUN: ${{secrets.CTYUN}}
