@@ -2,7 +2,7 @@ name: 天翼云电脑保活
 
 on:
   schedule:
-    - cron: '*/15 * * * *'  # 每5分钟执行一次定时任务‌:ml-citation{ref="2,5" data="citationList"}
+    - cron: '*/15 * * * *'  # 每15分钟执行一次定时任务‌:ml-citation{ref="2,5" data="citationList"}
   watch:
     types: [started]       # 当仓库被star时触发
 
