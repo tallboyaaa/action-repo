@@ -3,8 +3,8 @@ name: 天翼云电脑保活
 
 on:
   
-  schedule:
-    - cron: '*/55 * * * *'  # 每15分钟执行一次定时任务‌:ml-citation{ref="2,5" data="citationList"}
+  # schedule:
+  #   - cron: '*/15 * * * *'  # 每15分钟执行一次定时任务‌:ml-citation{ref="2,5" data="citationList"}
   workflow_dispatch:
 
 jobs:
